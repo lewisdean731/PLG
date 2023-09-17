@@ -7,6 +7,8 @@ using UnityEngine.UIElements;
 public class EndlessTerrain : MonoBehaviour
 {
 
+    const float scale = 5;
+
     public LODInfo[] detailLevels;
     public static float maxViewDistance;
     public Transform viewer;
@@ -23,7 +25,7 @@ public class EndlessTerrain : MonoBehaviour
     float sqrViewerMoveThresholdForChunkUpdate;
 
     Dictionary<Vector2, TerrainChunk> terrainChunks = new Dictionary<Vector2, TerrainChunk>();
-    List<TerrainChunk> chunksVisibleLastUpdate = new List<TerrainChunk>();
+    static List<TerrainChunk> chunksVisibleLastUpdate = new List<TerrainChunk>();
 
     void Start()
     {
@@ -41,7 +43,7 @@ public class EndlessTerrain : MonoBehaviour
 
     private void Update()
     {
-        viewerPosition = new Vector2(viewer.position.x, viewer.position.z);
+        viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / scale;
         
         // only update when viewer position has changed a bit
         if((viewerPositionOld - viewerPosition).sqrMagnitude > sqrViewerMoveThresholdForChunkUpdate)
@@ -73,11 +75,8 @@ public class EndlessTerrain : MonoBehaviour
                 if (terrainChunks.ContainsKey(viewedChunkCoord))
                 {
                     terrainChunks[viewedChunkCoord].updateTerrainChunk();
-                    if (terrainChunks[viewedChunkCoord].isVisible())
-                    {
-                        chunksVisibleLastUpdate.Add(terrainChunks[viewedChunkCoord]);
-                    }
-                } else
+                } 
+                else
                 {
                     terrainChunks.Add(viewedChunkCoord, new TerrainChunk(viewedChunkCoord, chunkSize, detailLevels, transform, mapMaterial));
                 }
@@ -111,8 +110,9 @@ public class EndlessTerrain : MonoBehaviour
             meshFilter = meshObject.AddComponent<MeshFilter>();
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshRenderer.material = material;
-            meshObject.transform.position = positionV3;
+            meshObject.transform.position = positionV3 * scale;
             meshObject.transform.parent = parent;
+            meshObject.transform.localScale = Vector3.one * scale;
             setVisible(false);
 
             lodMeshes = new LODMesh[detailLevels.Length];
@@ -175,6 +175,8 @@ public class EndlessTerrain : MonoBehaviour
                         lodMesh.requestMesh(mapData);
                     }
                 }
+
+                chunksVisibleLastUpdate.Add(this);
 
             }
 

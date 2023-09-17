@@ -26,6 +26,8 @@ public class MapGenerator : MonoBehaviour
     public float persistence;
     public float lacunarity;
 
+    public Noise.NormaliseMode normaliseMode;
+
     public bool autoUpdate;
 
     public TerrainType[] regions;
@@ -122,7 +124,7 @@ public class MapGenerator : MonoBehaviour
 
     MapData generateMapData(Vector2 center)
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, noiseScale, octaves, persistence, lacunarity, center + offset);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, noiseScale, octaves, persistence, lacunarity, center + offset, normaliseMode);
         Color[] colourMap = new Color[mapChunkSize * mapChunkSize];
 
         for (int y = 0; y < mapChunkSize; y++)
@@ -130,9 +132,9 @@ public class MapGenerator : MonoBehaviour
             for(int x = 0; x < mapChunkSize; x++)
             {
                 float currentHeight = noiseMap[x,y];
-                for (int i = 0; i < regions.Length; i++)
+                for (int i = regions.Length - 1; i >= 0; i--)
                 {
-                    if(currentHeight <= regions[i].height)
+                    if(currentHeight >= regions[i].height)
                     {
                         colourMap[y * mapChunkSize + x] = regions[i].colour;
                         break;
