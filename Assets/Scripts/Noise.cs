@@ -1,29 +1,97 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 public static class Noise
 {
-    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, float noiseScale)
+    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, string seed, float scale, int octaves, float persistance, float lacunarity, Vector2 offset)
     {
         float[,] noiseMap = new float[mapWidth, mapHeight];
 
-        if (noiseScale <= 0) {
-            noiseScale = 0.0001f;
+        System.Random prng = new System.Random(convertStringSeedToInt(seed));
+        Vector2[] octaveOffsets = new Vector2[octaves];
+
+        for (int i = 0; i < octaves; i++)
+        {
+            float offsetX = prng.Next(-100000, 100000) + offset.x;
+            float offsetY = prng.Next(-100000, 100000) + offset.y;
+            octaveOffsets[i] = new Vector2(offsetX, offsetY);
         }
+
+
+        if (scale <= 0) {
+            scale = 0.0001f;
+        }
+
+        float maxNoiseHeight = float.MinValue;
+        float minNoiseHeight = float.MaxValue;
+
+        float halfWidth = mapWidth / 2;
+        float halfHeight = mapHeight / 2;
 
         for (int y = 0; y < mapHeight; y++)
         {
             for (int x = 0; x < mapWidth; x++)
             {
-                float sampleX = x / noiseScale;
-                float sampleY = y / noiseScale;
+                float amplitude = 1;
+                float frequency = 1;
+                float noiseHeight = 0;
 
-                float perlinValue = Mathf.PerlinNoise( sampleX, sampleY );
-                noiseMap[y, x] = perlinValue;
+                // each octave we will layer another level of noise on to the noiseMap,
+                // subsequent octaves will impact the overall map less based on persistance
+                // and lacunarity
+                for( int i = 0; i < octaves; i++)
+                {
+                    // sample points subtract halfWidth / halfHeight so when we change noise scale,
+                    // it scales from the center of the noise map instead of the top-righht corner
+                    float sampleX = (x - halfWidth) / scale * frequency + octaveOffsets[i].x;
+                    float sampleY = (y - halfHeight) / scale * frequency + octaveOffsets[i].y;
+
+                    float perlinValue = Mathf.PerlinNoise(sampleX, sampleY);
+                    perlinValue += perlinValue * 2 - 1; // allows value to be in the range +-1 so noiseHeight may sometimes decrease
+
+                    noiseHeight += perlinValue * amplitude;
+                     
+                    amplitude *= persistance; // decreases each octave
+                    frequency *= lacunarity; // increases each octave
+                }
+
+                if(noiseHeight > maxNoiseHeight)
+                {
+                    maxNoiseHeight = noiseHeight;
+                } 
+                else if ( noiseHeight < minNoiseHeight)
+                {
+                    minNoiseHeight = noiseHeight;
+                }
+                noiseMap[x,y] = noiseHeight;
+            }
+        }
+
+        // go through all noise map values and normalise them between max and min values
+        for (int y = 0; y < mapHeight; y++)
+        {
+            for (int x = 0; x < mapWidth; x++)
+            {
+                noiseMap[x,y] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x,y]);
             }
         }
 
         return noiseMap;
-    }    
+    }
+    
+    public static int convertStringSeedToInt(string seed)
+    {
+        int seedValue = 0;
+        byte[] bytes = Encoding.ASCII.GetBytes(seed);
+
+        foreach (byte b in bytes)
+        {
+            seedValue += b;
+        }
+
+        return seedValue;
+    }
 }
