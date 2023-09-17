@@ -9,7 +9,10 @@ public class EndlessTerrain : MonoBehaviour
     public const float maxViewDistance = 300;
     public Transform viewer;
 
+    public Material mapMaterial;
+
     public static Vector2 viewerPosition;
+    static MapGenerator mapGenerator;
     int chunkSize;
     int chunksVisibleInViewDistance;
 
@@ -18,6 +21,7 @@ public class EndlessTerrain : MonoBehaviour
 
     void Start()
     {
+        mapGenerator = FindObjectOfType<MapGenerator>();
         chunkSize = MapGenerator.mapChunkSize - 1; // is 240 (mesh size); mapChunkSize val 241
         chunksVisibleInViewDistance = Mathf.RoundToInt(maxViewDistance / chunkSize);
     }
@@ -55,7 +59,7 @@ public class EndlessTerrain : MonoBehaviour
                     }
                 } else
                 {
-                    terrainChunks.Add(viewedChunkCoord, new TerrainChunk(viewedChunkCoord, chunkSize, transform));
+                    terrainChunks.Add(viewedChunkCoord, new TerrainChunk(viewedChunkCoord, chunkSize, transform, mapMaterial));
                 }
             }
         }
@@ -65,17 +69,34 @@ public class EndlessTerrain : MonoBehaviour
         GameObject meshObject;
         Vector2 position;
         Bounds bounds;
-        public TerrainChunk(Vector2 coord, int size, Transform parent)
+
+        MeshRenderer meshRenderer;
+        MeshFilter meshFilter;
+        public TerrainChunk(Vector2 coord, int size, Transform parent, Material material)
         {
             position = coord * size;
             bounds = new Bounds(position, Vector2.one * size);
             Vector3 positionV3 = new Vector3(position.x, 0, position.y);
 
-            meshObject = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            meshObject = new GameObject("Terrain Chunk");
+            meshFilter = meshObject.AddComponent<MeshFilter>();
+            meshRenderer = meshObject.AddComponent<MeshRenderer>();
+            meshRenderer.material = material;
             meshObject.transform.position = positionV3;
-            meshObject.transform.localScale = Vector3.one * size / 10f; // 10 because of the scale of the plane we are using - TODO set this somewhere
             meshObject.transform.parent = parent;
             setVisible(false);
+
+            mapGenerator.RequestMapData(OnMapDataRecieved);
+        }
+
+        void OnMapDataRecieved(MapData mapData)
+        {
+            mapGenerator.RequestMeshData(mapData, onMeshDataRecieved);
+        }
+
+        void onMeshDataRecieved(MeshData meshData)
+        {
+            meshFilter.mesh = meshData.createMesh();
         }
 
         public void updateTerrainChunk()
