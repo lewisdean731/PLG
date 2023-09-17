@@ -4,19 +4,22 @@ using UnityEngine;
 
 public static class MeshGenerator
 {
-    public static MeshData generateTerrainMesh(float[,] heightMap, float heightMultiplier, AnimationCurve heightCurve)
+    public static MeshData generateTerrainMesh(float[,] heightMap, float heightMultiplier, AnimationCurve heightCurve, int levelOfDetail)
     {
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
         float topLeftX = (width - 1) / -2f; // negative value to get left most position
         float topLeftZ = (height - 1) / 2f;
 
-        MeshData meshData = new MeshData(width, height);
+        int meshSimplificationIncrement = (levelOfDetail == 0) ? 1 : levelOfDetail * 2; // 2,4,6,8,10,12 to work with chunk size (240)
+        int verticesPerLine = (width -1) / meshSimplificationIncrement + 1; // ensures number of verts will be correct at different LOD levels
+
+        MeshData meshData = new MeshData(verticesPerLine);
         int vertexIndex = 0;
 
-        for(int y = 0; y < height; y++)
+        for(int y = 0; y < height; y += meshSimplificationIncrement)
         {
-            for(int x = 0; x < width; x++)
+            for(int x = 0; x < width; x += meshSimplificationIncrement)
             {
                 float vertHeight = heightCurve.Evaluate(heightMap[x, y]) * heightMultiplier;
                 meshData.vertices[vertexIndex] = new Vector3(topLeftX + x, vertHeight, topLeftZ - y);
@@ -25,9 +28,9 @@ public static class MeshGenerator
                 if(x < width-1 && y < height -1) // ignore right and bottom edge vertices
                 {
                     // top left, bottom right, bottom left
-                    meshData.AddTriangle(vertexIndex, vertexIndex + width + 1, vertexIndex + width);
+                    meshData.AddTriangle(vertexIndex, vertexIndex + verticesPerLine + 1, vertexIndex + verticesPerLine);
                     // bottom right, top left, top right
-                    meshData.AddTriangle(vertexIndex + width + 1, vertexIndex, vertexIndex + 1);
+                    meshData.AddTriangle(vertexIndex + verticesPerLine + 1, vertexIndex, vertexIndex + 1);
                 }
 
                 vertexIndex += 1;
@@ -45,11 +48,13 @@ public class MeshData
     public Vector2[] uvs;
 
     int triangleIndex;
-    public MeshData(int meshWidth, int MeshHeight)
+    public MeshData(int verticesPerLine)
     {
-        vertices = new Vector3[meshWidth * MeshHeight];
-        uvs = new Vector2[meshWidth * MeshHeight];
-        triangles = new int[(meshWidth - 1) * (MeshHeight - 1) * 6]; // *6 because each square is made up of 2 triangles of 3 verts each
+        int meshWidth = verticesPerLine;
+        int meshHeight = verticesPerLine;
+        vertices = new Vector3[meshWidth * meshHeight];
+        uvs = new Vector2[meshWidth * meshHeight];
+        triangles = new int[(meshWidth - 1) * (meshHeight - 1) * 6]; // *6 because each square is made up of 2 triangles of 3 verts each
     }
 
     public void AddTriangle(int a, int b, int c)

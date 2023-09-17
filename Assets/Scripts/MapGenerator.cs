@@ -9,8 +9,10 @@ public class MapGenerator : MonoBehaviour
     public enum DrawMode { NoiseMap, ColourMap, NoiseMesh, ColourMesh };
     public DrawMode drawMode;
 
-    public int mapWidth;
-    public int mapHeight;
+    const int mapChunkSize = 241;
+    [Range(0,6)]
+    public int levelOfDetail;
+
     public string seed;
     public Vector2 offset;
     public float meshHeightMultiplier;
@@ -29,19 +31,19 @@ public class MapGenerator : MonoBehaviour
 
     public void generateMap()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, seed, noiseScale, octaves, persistence, lacunarity, offset);
-        Color[] colourMap = new Color[mapWidth * mapHeight];
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, noiseScale, octaves, persistence, lacunarity, offset);
+        Color[] colourMap = new Color[mapChunkSize * mapChunkSize];
 
-        for (int y = 0; y < mapHeight; y++)
+        for (int y = 0; y < mapChunkSize; y++)
         {
-            for(int x = 0; x < mapWidth; x++)
+            for(int x = 0; x < mapChunkSize; x++)
             {
                 float currentHeight = noiseMap[x,y];
                 for (int i = 0; i < regions.Length; i++)
                 {
                     if(currentHeight <= regions[i].height)
                     {
-                        colourMap[y * mapWidth + x] = regions[i].colour;
+                        colourMap[y * mapChunkSize + x] = regions[i].colour;
                         break;
                     }
                 }
@@ -55,18 +57,18 @@ public class MapGenerator : MonoBehaviour
                 display.DrawTexture(TextureGenerator.textureFromHeightMap(noiseMap));
                 break;
             case DrawMode.ColourMap:
-                display.DrawTexture(TextureGenerator.textureFromColourMap(colourMap, mapWidth, mapHeight));
+                display.DrawTexture(TextureGenerator.textureFromColourMap(colourMap, mapChunkSize, mapChunkSize));
                 break;
             case DrawMode.NoiseMesh:
                 display.DrawMesh(
-                    MeshGenerator.generateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve),
+                    MeshGenerator.generateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve, levelOfDetail),
                     TextureGenerator.textureFromHeightMap(noiseMap)
                 );
                 break;
             case DrawMode.ColourMesh:
                 display.DrawMesh(
-                    MeshGenerator.generateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve),
-                    TextureGenerator.textureFromColourMap(colourMap, mapWidth, mapHeight)
+                    MeshGenerator.generateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve, levelOfDetail),
+                    TextureGenerator.textureFromColourMap(colourMap, mapChunkSize, mapChunkSize)
                 );
                 break;
             default:
@@ -76,14 +78,6 @@ public class MapGenerator : MonoBehaviour
     }
     void OnValidate()
     {
-        if(mapWidth < 1)
-        {
-            mapWidth = 1;
-        }
-        if (mapHeight < 1)
-        {
-            mapHeight = 1;
-        }
         if (lacunarity < 1)
         {
             lacunarity = 1;
