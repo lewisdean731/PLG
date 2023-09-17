@@ -7,7 +7,7 @@ using UnityEngine;
 public class MapGenerator : MonoBehaviour
 {
 
-    public enum DrawMode { NoiseMap, ColourMap, NoiseMesh, ColourMesh };
+    public enum DrawMode { NoiseMap, FalloffMap, ColourMap, NoiseMesh, ColourMesh};
     public DrawMode drawMode;
 
     public const int mapChunkSize = 241; // actual mesh dimensions 240x240
@@ -26,6 +26,9 @@ public class MapGenerator : MonoBehaviour
     public float persistence;
     public float lacunarity;
 
+    public bool useFalloff;
+    [Range (0f, 1f)]
+    public float falloffValueTODO;
     public Noise.NormaliseMode normaliseMode;
 
     public bool autoUpdate;
@@ -34,6 +37,13 @@ public class MapGenerator : MonoBehaviour
 
     Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
     Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+
+    float[,] falloffMap = new float[mapChunkSize, mapChunkSize];
+
+    void Awake()
+    {
+        falloffMap = Falloff.generateFalloffMap(mapChunkSize);
+    }
 
     public void DrawMap()
     {
@@ -44,6 +54,9 @@ public class MapGenerator : MonoBehaviour
         {
             case DrawMode.NoiseMap:
                 display.DrawTexture(TextureGenerator.textureFromHeightMap(mapData.heightMap));
+                break;
+            case DrawMode.FalloffMap:
+                display.DrawTexture(TextureGenerator.textureFromHeightMap(Falloff.generateFalloffMap(mapChunkSize)));
                 break;
             case DrawMode.ColourMap:
                 display.DrawTexture(TextureGenerator.textureFromColourMap(mapData.colourMap, mapChunkSize, mapChunkSize));
@@ -131,6 +144,10 @@ public class MapGenerator : MonoBehaviour
         {
             for(int x = 0; x < mapChunkSize; x++)
             {
+                if (useFalloff)
+                {
+                    noiseMap[x,y] = Mathf.Clamp01(noiseMap[x,y] - falloffMap[x,y]);
+                }
                 float currentHeight = noiseMap[x,y];
                 for (int i = regions.Length - 1; i >= 0; i--)
                 {
@@ -153,6 +170,11 @@ public class MapGenerator : MonoBehaviour
         if (lacunarity < 1)
         {
             lacunarity = 1;
+        }
+        if (useFalloff)
+        {
+            // we do this in the awake function, but it does not run in the editor
+            falloffMap = Falloff.generateFalloffMap(mapChunkSize);
         }
     }
 
