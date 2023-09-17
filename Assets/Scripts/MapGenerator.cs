@@ -6,13 +6,15 @@ using UnityEngine;
 public class MapGenerator : MonoBehaviour
 {
 
-    public enum DrawMode { NoiseMap, ColourMap, Mesh };
+    public enum DrawMode { NoiseMap, ColourMap, NoiseMesh, ColourMesh };
     public DrawMode drawMode;
 
     public int mapWidth;
     public int mapHeight;
     public string seed;
     public Vector2 offset;
+    public float meshHeightMultiplier;
+    public AnimationCurve meshHeightCurve;
     
     public float noiseScale;
     [Range(1, 30)]
@@ -55,9 +57,15 @@ public class MapGenerator : MonoBehaviour
             case DrawMode.ColourMap:
                 display.DrawTexture(TextureGenerator.textureFromColourMap(colourMap, mapWidth, mapHeight));
                 break;
-            case DrawMode.Mesh:
+            case DrawMode.NoiseMesh:
                 display.DrawMesh(
-                    MeshGenerator.generateTerrainMesh(noiseMap), 
+                    MeshGenerator.generateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve),
+                    TextureGenerator.textureFromHeightMap(noiseMap)
+                );
+                break;
+            case DrawMode.ColourMesh:
+                display.DrawMesh(
+                    MeshGenerator.generateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve),
                     TextureGenerator.textureFromColourMap(colourMap, mapWidth, mapHeight)
                 );
                 break;
