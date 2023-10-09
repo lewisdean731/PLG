@@ -153,7 +153,7 @@ public class MapGenerator : MonoBehaviour
         {
             for (int x = 0; x < TerrainMetrics.mapChunkSize; x++)
             {
-                float currentHeight = noiseMap[x, y];
+                float currentHeight = noiseMap[x + TerrainMetrics.highestLod, y + TerrainMetrics.highestLod];
                 for (int i = regions.Length - 1; i >= 0; i--)
                 {
                     if (currentHeight >= regions[i].height)

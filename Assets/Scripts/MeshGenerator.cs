@@ -6,9 +6,11 @@ public static class MeshGenerator
 {
     public static MeshData generateTerrainMesh(float[,] heightMap, float heightMultiplier, AnimationCurve _heightCurve, int levelOfDetail)
     {
+        int meshSimplificationIncrement = TerrainMetrics.lods[levelOfDetail];
+        int lodDifference = TerrainMetrics.highestLod - meshSimplificationIncrement;
+
         AnimationCurve heightCurve = new AnimationCurve(_heightCurve.keys); // AnimationCurve goes all funny when accessed by multiple threads; give each thread its own one here
-        int meshSimplificationIncrement = (levelOfDetail == 0) ? 1 : levelOfDetail * 2; // 2,4,6,8,10,12 to work with chunk size (240)
-        int borderedSize = heightMap.GetLength(0);
+        int borderedSize = heightMap.GetLength(0) - (2 * TerrainMetrics.highestLod) + (2 * meshSimplificationIncrement);
         int meshSize = borderedSize - 2 * meshSimplificationIncrement;
         int meshSizeUnsimplified = borderedSize - 2;
         float topLeftX = (meshSizeUnsimplified - 1) / -2f; // negative value to get left most position
@@ -44,8 +46,10 @@ public static class MeshGenerator
             for(int x = 0; x < borderedSize; x += meshSimplificationIncrement)
             {
                 int vertexIndex = vertexIndicesMap[x, y];
-                float vertHeight = heightCurve.Evaluate(heightMap[x, y]) * heightMultiplier;
-                Vector2 percent = new Vector2((x - meshSimplificationIncrement)/(float)meshSize, (y - meshSimplificationIncrement)/(float)meshSize);
+                float vertHeight = heightCurve.Evaluate(heightMap[x + lodDifference, y + lodDifference]) * heightMultiplier;
+                Vector2 percent = new Vector2((x) / (float)(meshSizeUnsimplified), (y) / (float)(meshSizeUnsimplified));
+                Vector2 percentUV = new Vector2((x - meshSimplificationIncrement) / (float)meshSize, (y - meshSimplificationIncrement) / (float)meshSize);
+                //Vector2 percent = new Vector2((x - meshSimplificationIncrement)/(float)meshSize, (y - meshSimplificationIncrement)/(float)meshSize);
                 Vector3 vertexPosition = new Vector3(topLeftX + percent.x * meshSizeUnsimplified, vertHeight, topLeftZ - percent.y * meshSizeUnsimplified);
 
                 meshData.addVertex(vertexPosition, percent, vertexIndex);

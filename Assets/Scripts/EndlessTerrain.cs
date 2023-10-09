@@ -6,9 +6,6 @@ using UnityEngine.UIElements;
 
 public class EndlessTerrain : MonoBehaviour
 {
-
-    const float scale = 1;
-
     public LODInfo[] detailLevels;
     public static float maxViewDistance;
     public Transform viewer;
@@ -43,7 +40,7 @@ public class EndlessTerrain : MonoBehaviour
 
     private void Update()
     {
-        viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / scale;
+        viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / TerrainMetrics.terrainScale;
         
         // only update when viewer position has changed a bit
         if((viewerPositionOld - viewerPosition).sqrMagnitude > sqrViewerMoveThresholdForChunkUpdate)
@@ -112,9 +109,9 @@ public class EndlessTerrain : MonoBehaviour
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshCollider = meshObject.AddComponent<MeshCollider>();
             meshRenderer.material = material;
-            meshObject.transform.position = positionV3 * scale;
+            meshObject.transform.position = positionV3 * TerrainMetrics.terrainScale;
             meshObject.transform.parent = parent;
-            meshObject.transform.localScale = Vector3.one * scale;
+            meshObject.transform.localScale = Vector3.one * TerrainMetrics.terrainScale;
             setVisible(false);
 
             lodMeshes = new LODMesh[detailLevels.Length];
