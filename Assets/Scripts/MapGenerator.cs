@@ -136,10 +136,7 @@ public class MapGenerator : MonoBehaviour
 
     MapData generateMapData(Vector2 center, int lod)
     {
-
-
         float[,] noiseMap = Noise.GenerateNoiseMap(TerrainMetrics.totalMapChunkSize, TerrainMetrics.totalMapChunkSize, seed, noiseScale, octaves, persistence, lacunarity, center + offset, normaliseMode);
-        Color[] colourMap = ColorMap.generateColorMap(this, noiseMap, lod);
         for (int y = 0; y < TerrainMetrics.totalMapChunkSize; y++)
         {
             for(int x = 0; x < TerrainMetrics.totalMapChunkSize; x++)
@@ -150,6 +147,8 @@ public class MapGenerator : MonoBehaviour
                 }
             }
         }
+
+        Color[] colourMap = ColorMap.generateColorMap(this, noiseMap, lod);
 
         return new MapData(noiseMap, colourMap);
 

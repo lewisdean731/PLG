@@ -9,11 +9,7 @@ public class ColorMap
         // We need the LOD so we can make the size of the colour map smaller as the size of the mesh decreases with each LOD
         int simplificationIncrement = TerrainMetrics.lods[lod];
         int lodDifference = TerrainMetrics.highestLod - simplificationIncrement;
-        int colourMapSize = TerrainMetrics.mapChunkSize + (2 * TerrainMetrics.highestLod) - (2 * lodDifference);
-        Debug.Log(lod);
-        Debug.Log(simplificationIncrement);
-        Debug.Log(lodDifference);
-        Debug.Log(colourMapSize);
+        int colourMapSize = TerrainMetrics.totalMapChunkSize - (2 * lodDifference) - 2;
 
         Color[] colourMap = new Color[colourMapSize * colourMapSize];
 
