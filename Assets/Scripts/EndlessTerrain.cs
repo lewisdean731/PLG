@@ -6,9 +6,6 @@ using UnityEngine.UIElements;
 
 public class EndlessTerrain : MonoBehaviour
 {
-
-    const float scale = 1;
-
     public LODInfo[] detailLevels;
     public static float maxViewDistance;
     public Transform viewer;
@@ -31,9 +28,9 @@ public class EndlessTerrain : MonoBehaviour
     {
         mapGenerator = FindObjectOfType<MapGenerator>();
 
-        maxViewDistance = detailLevels[detailLevels.Length - 1].visibleDistanceThreashold;
+        maxViewDistance = detailLevels[detailLevels.Length - 1].visibleDistanceThreshold;
 
-        chunkSize = MapGenerator.mapChunkSize - 1; // is 240 (mesh size); mapChunkSize val 241
+        chunkSize = TerrainMetrics.mapChunkSize - 1; // is 240 (mesh size); mapChunkSize val 241
         chunksVisibleInViewDistance = Mathf.RoundToInt(maxViewDistance / chunkSize);
         viewerMoveThresholdForChunkUpdate = chunkSize / 4;
         sqrViewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
@@ -43,7 +40,7 @@ public class EndlessTerrain : MonoBehaviour
 
     private void Update()
     {
-        viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / scale;
+        viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / TerrainMetrics.terrainScale;
         
         // only update when viewer position has changed a bit
         if((viewerPositionOld - viewerPosition).sqrMagnitude > sqrViewerMoveThresholdForChunkUpdate)
@@ -112,9 +109,9 @@ public class EndlessTerrain : MonoBehaviour
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshCollider = meshObject.AddComponent<MeshCollider>();
             meshRenderer.material = material;
-            meshObject.transform.position = positionV3 * scale;
+            meshObject.transform.position = positionV3 * TerrainMetrics.terrainScale;
             meshObject.transform.parent = parent;
-            meshObject.transform.localScale = Vector3.one * scale;
+            meshObject.transform.localScale = Vector3.one * TerrainMetrics.terrainScale;
             setVisible(false);
 
             lodMeshes = new LODMesh[detailLevels.Length];
@@ -123,7 +120,8 @@ public class EndlessTerrain : MonoBehaviour
                 lodMeshes[i] = new LODMesh(detailLevels[i].lod, updateTerrainChunk);
             }
 
-            mapGenerator.RequestMapData(position, OnMapDataRecieved);
+            int mapLod = previousLodIndex < 0 ? 6 : previousLodIndex;
+            mapGenerator.RequestMapData(position, mapLod, OnMapDataRecieved);
         }
 
         void OnMapDataRecieved(MapData mapData)
@@ -131,8 +129,10 @@ public class EndlessTerrain : MonoBehaviour
             this.mapData = mapData;
             mapDataRecieved = true;
 
-            Texture2D texture = TextureGenerator.textureFromColourMap(mapData.colourMap, MapGenerator.mapChunkSize, MapGenerator.mapChunkSize);
-            meshRenderer.material.mainTexture = texture;
+            for (int i = 0; i < detailLevels.Length; i++)
+            {
+                lodMeshes[i].colorMap = ColorMap.generateColorMap(mapGenerator, mapData.heightMap, detailLevels[i].lod);
+            }
 
             updateTerrainChunk();
         }
@@ -155,7 +155,7 @@ public class EndlessTerrain : MonoBehaviour
                 int lodIndex = 0;
                 for(int i = 0; i < detailLevels.Length - 1; i++) // -1 because visible will always be false if we were to get to that number 
                 {
-                    if (viewerDistanceFromNearestEdge > detailLevels[i].visibleDistanceThreashold)
+                    if (viewerDistanceFromNearestEdge > detailLevels[i].visibleDistanceThreshold)
                     {
                         lodIndex = i + 1;
                     }
@@ -167,11 +167,14 @@ public class EndlessTerrain : MonoBehaviour
                 if(lodIndex != previousLodIndex)
                 {
                     LODMesh lodMesh = lodMeshes[lodIndex];
-                    if(lodMesh.hasBeenRecieved)
+                    if (lodMesh.hasBeenRecieved)
                     {
                         previousLodIndex = lodIndex;
                         meshFilter.mesh = lodMesh.mesh;
                         meshCollider.sharedMesh = lodMesh.mesh;
+
+                        Texture2D texture = TextureGenerator.textureFromColourMap(lodMesh.colorMap, (int)Math.Sqrt(lodMesh.colorMap.Length), (int)Math.Sqrt(lodMesh.colorMap.Length));
+                        meshRenderer.material.mainTexture = texture;
                     }
                     else if (!lodMesh.hasBeenRequested)
                     {
@@ -199,6 +202,7 @@ public class EndlessTerrain : MonoBehaviour
         class LODMesh
         {
             public Mesh mesh;
+            public Color[] colorMap;
             public bool hasBeenRequested;
             public bool hasBeenRecieved;
             int lod;
@@ -229,7 +233,7 @@ public class EndlessTerrain : MonoBehaviour
     public struct LODInfo
     {
         public int lod;
-        public float visibleDistanceThreashold;
+        public float visibleDistanceThreshold;
     }
 }
 
