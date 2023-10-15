@@ -13,7 +13,7 @@ public class ColorMap
 
         Color[] colourMap = new Color[colourMapSize * colourMapSize];
 
-        for (int y = 0; y < colourMapSize; y++)
+        /** for (int y = 0; y < colourMapSize; y++)
         {
             for (int x = 0; x < colourMapSize; x++)
             {
@@ -27,7 +27,7 @@ public class ColorMap
                     }
                 }
             }
-        }
+        } **/
 
         return colourMap;
     } 

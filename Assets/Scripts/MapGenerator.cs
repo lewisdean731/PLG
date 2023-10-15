@@ -7,44 +7,41 @@ using UnityEngine;
 public class MapGenerator : MonoBehaviour
 {
 
-    public enum DrawMode { NoiseMap, FalloffMap, ColourMap, NoiseMesh, ColourMesh};
+    public enum DrawMode { NoiseMap, FalloffMap, Mesh };
     public DrawMode drawMode;
+
+    public NoiseData noiseData;
+    public TerrainData terrainData;
+    public TextureData textureData;
+
+    public Material terrainMaterial;
 
     [Range(0, 5)]
     public int editorPreviewLevelOfDetail;
 
-    public string seed;
-    public Vector2 offset;
-    public float meshHeightMultiplier;
-    public AnimationCurve meshHeightCurve;
-    
-    public float noiseScale;
-    [Range(1, 30)]
-    public int octaves;
-    [Range(0f, 1f)]
-    public float persistence;
-    public float lacunarity;
-
-    public bool useFlatShading;
-    public bool useFalloff;
-    [Range (1f, 10f)]
-    public float falloffTransition = 3;
-    [Range(1f, 10f)]
-    public float falloffDeadzone = 2.2f;
-    public Noise.NormaliseMode normaliseMode;
-
     public bool autoUpdate;
-
-    public TerrainType[] regions;
 
     Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
     Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+
+    void OnValuesUpdated()
+    {
+        if (!Application.isPlaying)
+        {
+            DrawMap();
+        }
+    }
+
+    void onTextureValuesUpdated()
+    {
+        textureData.applyToMaterial(terrainMaterial);
+    }
 
     float[,] falloffMap = new float[TerrainMetrics.mapChunkSize, TerrainMetrics.mapChunkSize];
 
     void Awake()
     {
-        falloffMap = Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, falloffTransition, falloffDeadzone);
+        falloffMap = Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, terrainData.falloffTransition, terrainData.falloffDeadzone);
     }
 
     public void DrawMap()
@@ -58,21 +55,11 @@ public class MapGenerator : MonoBehaviour
                 display.DrawTexture(TextureGenerator.textureFromHeightMap(mapData.heightMap));
                 break;
             case DrawMode.FalloffMap:
-                display.DrawTexture(TextureGenerator.textureFromHeightMap(Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, falloffTransition, falloffDeadzone)));
+                display.DrawTexture(TextureGenerator.textureFromHeightMap(Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, terrainData.falloffTransition, terrainData.falloffDeadzone)));
                 break;
-            case DrawMode.ColourMap:
-                display.DrawTexture(TextureGenerator.textureFromColourMap(mapData.colourMap, TerrainMetrics.mapChunkSize, TerrainMetrics.mapChunkSize));
-                break;
-            case DrawMode.NoiseMesh:
+            case DrawMode.Mesh:
                 display.DrawMesh(
-                    MeshGenerator.generateTerrainMesh(mapData.heightMap, meshHeightMultiplier, meshHeightCurve, editorPreviewLevelOfDetail, useFlatShading),
-                    TextureGenerator.textureFromHeightMap(mapData.heightMap)
-                );
-                break;
-            case DrawMode.ColourMesh:
-                display.DrawMesh(
-                    MeshGenerator.generateTerrainMesh(mapData.heightMap, meshHeightMultiplier, meshHeightCurve, editorPreviewLevelOfDetail, useFlatShading),
-                    TextureGenerator.textureFromColourMap(mapData.colourMap, (int)Math.Sqrt(mapData.colourMap.Length), (int)Math.Sqrt(mapData.colourMap.Length))
+                    MeshGenerator.generateTerrainMesh(mapData.heightMap, terrainData.meshHeightMultiplier, terrainData.meshHeightCurve, editorPreviewLevelOfDetail, terrainData.useFlatShading)
                 );
                 break;
             default:
@@ -111,7 +98,7 @@ public class MapGenerator : MonoBehaviour
 
     void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback)
     {
-        MeshData meshData = MeshGenerator.generateTerrainMesh(mapData.heightMap, meshHeightMultiplier, meshHeightCurve, lod, useFlatShading);
+        MeshData meshData = MeshGenerator.generateTerrainMesh(mapData.heightMap, terrainData.meshHeightMultiplier, terrainData.meshHeightCurve, lod, terrainData.useFlatShading);
         lock (meshDataThreadInfoQueue)
         {
             meshDataThreadInfoQueue.Enqueue(new MapThreadInfo<MeshData>(callback, meshData));
@@ -139,8 +126,8 @@ public class MapGenerator : MonoBehaviour
 
     MapData generateMapData(Vector2 center, int lod)
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(TerrainMetrics.totalMapChunkSize, TerrainMetrics.totalMapChunkSize, seed, noiseScale, octaves, persistence, lacunarity, center + offset, normaliseMode);
-        if (useFalloff)
+        float[,] noiseMap = Noise.GenerateNoiseMap(TerrainMetrics.totalMapChunkSize, TerrainMetrics.totalMapChunkSize, noiseData.seed, noiseData.noiseScale, noiseData.octaves, noiseData.persistence, noiseData.lacunarity, center + noiseData.offset, noiseData.normaliseMode);
+        if (terrainData.useFalloff)
         {
             int hlod = TerrainMetrics.highestLod;
             for (int y = 0; y < TerrainMetrics.totalMapChunkSize; y++)
@@ -159,23 +146,31 @@ public class MapGenerator : MonoBehaviour
             }
         }
 
-        Color[] colourMap = ColorMap.generateColorMap(this, noiseMap, lod);
-
-        return new MapData(noiseMap, colourMap);
-
-        
-        
+        return new MapData(noiseMap); 
     }
     void OnValidate()
     {
-        if (lacunarity < 1)
+        if (terrainData != null)
         {
-            lacunarity = 1;
+            // unsub and resub so we don't start adding multiple subscriptions every update
+            // camera controller probably does this better?
+            terrainData.onValuesUpdated -= OnValuesUpdated;
+            terrainData.onValuesUpdated += OnValuesUpdated;
         }
-        if (useFalloff)
+        if (noiseData != null)
+        {
+            noiseData.onValuesUpdated -= OnValuesUpdated;
+            noiseData.onValuesUpdated += OnValuesUpdated;
+        }
+        if (textureData != null)
+        {
+            textureData.onValuesUpdated -= onTextureValuesUpdated;
+            textureData.onValuesUpdated += onTextureValuesUpdated;
+        }
+        if (terrainData.useFalloff)
         {
             // we do this in the awake function, but it does not run in the editor
-            falloffMap = Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, falloffTransition, falloffDeadzone);
+            falloffMap = Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, terrainData.falloffTransition, terrainData.falloffDeadzone);
         }
     }
 
@@ -192,23 +187,12 @@ public class MapGenerator : MonoBehaviour
     }
 }
 
-[System.Serializable]
-public struct TerrainType
-{
-    public string name;
-    public float height;
-    public Color colour;
-
-}
-
 public struct MapData
 {
     public readonly float[,] heightMap;
-    public readonly Color[] colourMap;
 
-    public MapData(float[,] heightMap, Color[] colourMap)
+    public MapData(float[,] heightMap)
     {
         this.heightMap = heightMap;
-        this.colourMap = colourMap;
     }
 }

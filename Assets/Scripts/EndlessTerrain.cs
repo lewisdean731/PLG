@@ -40,7 +40,7 @@ public class EndlessTerrain : MonoBehaviour
 
     private void Update()
     {
-        viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / TerrainMetrics.terrainScale;
+        viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / mapGenerator.terrainData.terrainScale;
         
         // only update when viewer position has changed a bit
         if((viewerPositionOld - viewerPosition).sqrMagnitude > sqrViewerMoveThresholdForChunkUpdate)
@@ -110,9 +110,9 @@ public class EndlessTerrain : MonoBehaviour
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshCollider = meshObject.AddComponent<MeshCollider>();
             meshRenderer.material = material;
-            meshObject.transform.position = positionV3 * TerrainMetrics.terrainScale;
+            meshObject.transform.position = positionV3 * mapGenerator.terrainData.terrainScale;
             meshObject.transform.parent = parent;
-            meshObject.transform.localScale = Vector3.one * TerrainMetrics.terrainScale;
+            meshObject.transform.localScale = Vector3.one * mapGenerator.terrainData.terrainScale;
             setVisible(false);
 
             lodMeshes = new LODMesh[detailLevels.Length];
