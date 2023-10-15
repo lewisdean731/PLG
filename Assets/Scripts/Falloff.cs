@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Falloff
 {
-    public static float[,] generateFalloffMap(int size)
+    public static float[,] generateFalloffMap(int size, float transition, float deadzone)
     {
         float[,] map = new float[size, size];
 
@@ -16,18 +16,18 @@ public class Falloff
                 float y = j / (float)size * 2 - 1;
 
                 float value = Mathf.Max(Mathf.Abs(x), Mathf.Abs(y));
-                map[i,j] = evaluate(value);
+                map[i,j] = evaluate(value, transition, deadzone);
             }
         }
 
         return map;
     }
 
-    // curve for  
-    static float evaluate(float value)
+    // curve for generating the value
+    static float evaluate(float value, float transition = 3, float deadzone = 2.2f)
     {
-        float a = 3;
-        float b = 2.2f;
+        float a = transition;
+        float b = deadzone;
 
         return Mathf.Pow(value, a) / (Mathf.Pow(value, a) + Mathf.Pow(b - b * value, a));
     }

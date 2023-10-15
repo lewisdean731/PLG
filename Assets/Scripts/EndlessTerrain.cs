@@ -92,6 +92,7 @@ public class EndlessTerrain : MonoBehaviour
 
         LODInfo[] detailLevels;
         LODMesh[] lodMeshes;
+        LODMesh collisionLODMesh;
 
         MapData mapData;
         bool mapDataRecieved;
@@ -118,9 +119,13 @@ public class EndlessTerrain : MonoBehaviour
             for (int i = 0; i < detailLevels.Length; i++)
             {
                 lodMeshes[i] = new LODMesh(detailLevels[i].lod, updateTerrainChunk);
+                if (detailLevels[i].useForCollider)
+                {
+                    collisionLODMesh = lodMeshes[i];
+                }
             }
 
-            int mapLod = previousLodIndex < 0 ? 6 : previousLodIndex;
+            int mapLod = previousLodIndex < 0 ? TerrainMetrics.lods.Length - 1 : previousLodIndex;
             mapGenerator.RequestMapData(position, mapLod, OnMapDataRecieved);
         }
 
@@ -167,18 +172,29 @@ public class EndlessTerrain : MonoBehaviour
                 if(lodIndex != previousLodIndex)
                 {
                     LODMesh lodMesh = lodMeshes[lodIndex];
-                    if (lodMesh.hasBeenRecieved)
+                    if (lodMesh.hasMesh)
                     {
                         previousLodIndex = lodIndex;
                         meshFilter.mesh = lodMesh.mesh;
-                        meshCollider.sharedMesh = lodMesh.mesh;
 
                         Texture2D texture = TextureGenerator.textureFromColourMap(lodMesh.colorMap, (int)Math.Sqrt(lodMesh.colorMap.Length), (int)Math.Sqrt(lodMesh.colorMap.Length));
                         meshRenderer.material.mainTexture = texture;
                     }
-                    else if (!lodMesh.hasBeenRequested)
+                    else if (!lodMesh.hasRequestedMesh)
                     {
                         lodMesh.requestMesh(mapData);
+                    }
+
+                    if(lodIndex == 0)
+                    {
+                        if (collisionLODMesh.hasMesh)
+                        {
+                            meshCollider.sharedMesh = collisionLODMesh.mesh;
+                        }
+                        else if (!collisionLODMesh.hasRequestedMesh)
+                        {
+                            collisionLODMesh.requestMesh(mapData);
+                        }
                     }
                 }
 
@@ -203,8 +219,8 @@ public class EndlessTerrain : MonoBehaviour
         {
             public Mesh mesh;
             public Color[] colorMap;
-            public bool hasBeenRequested;
-            public bool hasBeenRecieved;
+            public bool hasRequestedMesh;
+            public bool hasMesh;
             int lod;
             Action updateCallback;
 
@@ -217,13 +233,13 @@ public class EndlessTerrain : MonoBehaviour
             void onMeshDataRecieved(MeshData meshData)
             {
                 mesh = meshData.createMesh();
-                hasBeenRecieved = true;
+                hasMesh = true;
                 updateCallback();
             }
 
             public void requestMesh(MapData mapData)
             {
-                hasBeenRequested = true;
+                hasRequestedMesh = true;
                 mapGenerator.RequestMeshData(mapData, lod, onMeshDataRecieved);
             }
         }
@@ -234,6 +250,7 @@ public class EndlessTerrain : MonoBehaviour
     {
         public int lod;
         public float visibleDistanceThreshold;
+        public bool useForCollider;
     }
 }
 
