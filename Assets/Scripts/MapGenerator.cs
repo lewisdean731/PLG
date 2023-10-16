@@ -34,18 +34,19 @@ public class MapGenerator : MonoBehaviour
 
     void onTextureValuesUpdated()
     {
-        textureData.applyToMaterial(terrainMaterial);
+        textureData.ApplyToMaterial(terrainMaterial);
     }
 
     float[,] falloffMap = new float[TerrainMetrics.mapChunkSize, TerrainMetrics.mapChunkSize];
 
     void Awake()
     {
-        falloffMap = Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, terrainData.falloffTransition, terrainData.falloffDeadzone);
+        textureData.UpdateMeshHeights(terrainMaterial, terrainData.minHeight, terrainData.maxHeight);
     }
 
     public void DrawMap()
     {
+        textureData.UpdateMeshHeights(terrainMaterial, terrainData.minHeight, terrainData.maxHeight);
         MapData mapData = generateMapData(Vector2.zero, editorPreviewLevelOfDetail);
 
         MapDisplay display = FindObjectOfType<MapDisplay>();
@@ -129,6 +130,10 @@ public class MapGenerator : MonoBehaviour
         float[,] noiseMap = Noise.GenerateNoiseMap(TerrainMetrics.totalMapChunkSize, TerrainMetrics.totalMapChunkSize, noiseData.seed, noiseData.noiseScale, noiseData.octaves, noiseData.persistence, noiseData.lacunarity, center + noiseData.offset, noiseData.normaliseMode);
         if (terrainData.useFalloff)
         {
+            if (falloffMap == null || !Application.isPlaying)
+            {
+                falloffMap = Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, terrainData.falloffTransition, terrainData.falloffDeadzone);
+            }
             int hlod = TerrainMetrics.highestLod;
             for (int y = 0; y < TerrainMetrics.totalMapChunkSize; y++)
             {

@@ -18,4 +18,18 @@ public class TerrainData : UpdateableData
     [Range(1f, 10f)]
     public float falloffDeadzone = 2.2f;
 
+    public float minHeight
+    {
+        get
+        {
+            return terrainScale * meshHeightMultiplier * meshHeightCurve.Evaluate(0);
+        }
+    }
+    public float maxHeight
+    {
+        get
+        {
+            return terrainScale * meshHeightMultiplier * meshHeightCurve.Evaluate(1);
+        }
+    }
 }

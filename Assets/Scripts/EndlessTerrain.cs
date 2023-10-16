@@ -134,10 +134,10 @@ public class EndlessTerrain : MonoBehaviour
             this.mapData = mapData;
             mapDataRecieved = true;
 
-            for (int i = 0; i < detailLevels.Length; i++)
-            {
-                lodMeshes[i].colorMap = ColorMap.generateColorMap(mapGenerator, mapData.heightMap, detailLevels[i].lod);
-            }
+            //for (int i = 0; i < detailLevels.Length; i++)
+            //{
+            //    lodMeshes[i].colorMap = ColorMap.generateColorMap(mapGenerator, mapData.heightMap, detailLevels[i].lod);
+            //}
 
             updateTerrainChunk();
         }
@@ -177,8 +177,8 @@ public class EndlessTerrain : MonoBehaviour
                         previousLodIndex = lodIndex;
                         meshFilter.mesh = lodMesh.mesh;
 
-                        Texture2D texture = TextureGenerator.textureFromColourMap(lodMesh.colorMap, (int)Math.Sqrt(lodMesh.colorMap.Length), (int)Math.Sqrt(lodMesh.colorMap.Length));
-                        meshRenderer.material.mainTexture = texture;
+                        //Texture2D texture = TextureGenerator.textureFromColourMap(lodMesh.colorMap, (int)Math.Sqrt(lodMesh.colorMap.Length), (int)Math.Sqrt(lodMesh.colorMap.Length));
+                        //meshRenderer.material.mainTexture = texture;
                     }
                     else if (!lodMesh.hasRequestedMesh)
                     {
