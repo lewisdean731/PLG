@@ -20,6 +20,7 @@ public class MapGenerator : MonoBehaviour
     public int editorPreviewLevelOfDetail;
 
     public bool autoUpdate;
+    bool isPlaying = false;
 
     Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
     Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
@@ -41,6 +42,7 @@ public class MapGenerator : MonoBehaviour
 
     void Awake()
     {
+        isPlaying = Application.isPlaying;
         textureData.UpdateMeshHeights(terrainMaterial, terrainData.minHeight, terrainData.maxHeight);
     }
 
@@ -130,7 +132,7 @@ public class MapGenerator : MonoBehaviour
         float[,] noiseMap = Noise.GenerateNoiseMap(TerrainMetrics.totalMapChunkSize, TerrainMetrics.totalMapChunkSize, noiseData.seed, noiseData.noiseScale, noiseData.octaves, noiseData.persistence, noiseData.lacunarity, center + noiseData.offset, noiseData.normaliseMode);
         if (terrainData.useFalloff)
         {
-            if (falloffMap == null || !Application.isPlaying)
+            if (falloffMap == null || !isPlaying)
             {
                 falloffMap = Falloff.generateFalloffMap(TerrainMetrics.totalMapChunkSize, terrainData.falloffTransition, terrainData.falloffDeadzone);
             }
