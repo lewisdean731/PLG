@@ -17,6 +17,7 @@ public class NoiseData : UpdateableData
 
     public Noise.NormaliseMode normaliseMode;
 
+    #if UNITY_EDITOR
     protected override void OnValidate()
     {
         if (lacunarity < 1)
@@ -25,4 +26,6 @@ public class NoiseData : UpdateableData
         }
         base.OnValidate();
     }
+
+    #endif
 }

@@ -43,6 +43,7 @@ public class MapGenerator : MonoBehaviour
     void Awake()
     {
         isPlaying = Application.isPlaying;
+        textureData.ApplyToMaterial(terrainMaterial);
         textureData.UpdateMeshHeights(terrainMaterial, terrainData.minHeight, terrainData.maxHeight);
     }
 
